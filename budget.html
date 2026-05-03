@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Budget">
+<meta name="theme-color" content="#0f0f0f">
+<title>Budget · Rowel</title>
+
+<!-- Inline manifest as data URI for self-contained PWA -->
+
+<link rel="manifest" href="data:application/json,{%22name%22:%22Budget%20%C2%B7%20Rowel%22,%22short_name%22:%22Budget%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%230f0f0f%22,%22theme_color%22:%22%230f0f0f%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,%253Csvg%2520xmlns%253D'http%253A%252F%252Fwww.w3.org%252F2000%252Fsvg'%2520viewBox%253D'0%25200%2520100%2520100'%253E%253Crect%2520width%253D'100'%2520height%253D'100'%2520rx%253D'20'%2520fill%253D'%25230f0f0f'%252F%253E%253Ctext%2520y%253D'.9em'%2520font-size%253D'70'%2520x%253D'50%2525'%2520text-anchor%253D'middle'%253E%25F0%259F%2592%25B0%253C%252Ftext%253E%253C%252Fsvg%253E%22,%22sizes%22:%22any%22,%22type%22:%22image/svg+xml%22}]}">
+
+<style>
+:root {
+  --bg: #0f0f0f;
+  --surface: #1a1a1a;
+  --surface2: #242424;
+  --border: #2e2e2e;
+  --accent: #c8f56a;
+  --accent2: #f5a623;
+  --accent3: #ff6b6b;
+  --accent4: #6baaff;
+  --text: #f0f0f0;
+  --muted: #777;
+  --green: #4caf82;
+  --red: #ff6b6b;
+  --tab-h: 68px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  overflow: hidden;
+}
+
+/* ── App shell ── */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding-top: var(--safe-top);
+}
+
+/* ── Top bar ── */
+.topbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.topbar-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.topbar-title span { color: var(--accent); }
+
+.surplus-badge {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-weight: 600;
+  transition: all 0.3s;
+  max-width: 160px;
+  text-align: right;
+  line-height: 1.3;
+}
+.surplus-badge.pos { background: rgba(76,175,130,0.15); color: var(--green); border: 1px solid rgba(76,175,130,0.3); }
+.surplus-badge.neg { background: rgba(255,107,107,0.12); color: var(--red); border: 1px solid rgba(255,107,107,0.25); }
+.surplus-badge.nil { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+
+/* ── Scroll area ── */
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 16px calc(var(--tab-h) + var(--safe-bot) + 16px);
+}
+
+/* ── Tabs ── */
+.tabbar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: calc(var(--tab-h) + var(--safe-bot));
+  padding-bottom: var(--safe-bot);
+  background: rgba(15,15,15,0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  padding-top: 8px;
+  z-index: 100;
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.tab-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.tab-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted);
+  transition: color 0.2s;
+}
+
+.tab.active .tab-label { color: var(--accent); }
+.tab.active .tab-icon { filter: drop-shadow(0 0 6px rgba(200,245,106,0.5)); }
+
+/* ── Pages ── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── Cards ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 14px;
+}
+
+.card-title {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+  font-weight: 600;
+}
+
+/* ── Summary hero ── */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.hero-item {
+  background: var(--surface2);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.hero-label {
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.hero-value {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -1px;
+}
+
+.hero-value.income { color: var(--accent); }
+.hero-value.expense { color: var(--accent3); }
+.hero-value.surplus { color: var(--green); }
+.hero-value.deficit { color: var(--red); }
+.hero-value.rental { color: var(--accent4); }
+
+/* ── Stack bar ── */
+.stackbar {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--surface2);
+  overflow: hidden;
+  display: flex;
+  margin-bottom: 10px;
+}
+.seg { height: 100%; transition: width 0.5s ease; }
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.leg {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.leg-dot {
+  width: 8px; height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ── Input fields ── */
+.input-group {
+  margin-bottom: 14px;
+}
+
+.input-label {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.input-label.exp { color: rgba(255,107,107,0.8); }
+.input-label.inc { color: rgba(76,175,130,0.8); }
+
+.input-wrap {
+  display: flex;
+  align-items: center;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  gap: 8px;
+  transition: border-color 0.2s;
+}
+
+.input-wrap:focus-within { border-color: var(--accent); }
+.input-wrap.exp:focus-within { border-color: var(--red); }
+.input-wrap.inc:focus-within { border-color: var(--green); }
+
+.input-prefix {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.input-prefix.exp { color: rgba(255,107,107,0.7); }
+.input-prefix.inc { color: rgba(76,175,130,0.7); }
+
+input[type="number"] {
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 600;
+  width: 100%;
+  letter-spacing: -0.5px;
+}
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+input[type="number"]::placeholder { color: var(--border); }
+
+.input-sub {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 4px;
+  padding-left: 4px;
+}
+
+/* ── Divider ── */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 0;
+}
+
+/* ── Property net row ── */
+.prop-net-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.prop-net-box {
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.prop-net-label {
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.prop-net-value {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+.prop-net-value.pos { color: var(--green); }
+.prop-net-value.neg { color: var(--red); }
+
+.gear-tag {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.gear-tag.neg-g { background: rgba(255,107,107,0.1); color: var(--red); border-color: rgba(255,107,107,0.3); }
+.gear-tag.neu-g { background: rgba(200,245,106,0.1); color: var(--accent); border-color: rgba(200,245,106,0.3); }
+.gear-tag.pos-g { background: rgba(76,175,130,0.1); color: var(--green); border-color: rgba(76,175,130,0.3); }
+
+/* ── Recurring rows ── */
+.rec-row {
+  display: flex;
+  align-items: center;
+  padding: 11px 0;
+  border-bottom: 1px solid rgba(46,46,46,0.6);
+  gap: 10px;
+}
+.rec-row:last-child { border-bottom: none; }
+
+.rec-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rec-info { flex: 1; min-width: 0; }
+.rec-name { font-size: 13px; font-weight: 500; }
+.rec-note { font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+.rec-amount {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── Rules ── */
+.rule-item {
+  display: flex;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(46,46,46,0.6);
+  align-items: flex-start;
+}
+.rule-item:last-child { border-bottom: none; }
+
+.rule-num {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+  flex-shrink: 0;
+  width: 28px;
+}
+
+.rule-body {}
+.rule-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.rule-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+/* ── Milestones ── */
+.milestone {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(46,46,46,0.6);
+}
+.milestone:last-child { border-bottom: none; }
+
+.ms-date {
+  font-size: 11px;
+  color: var(--accent2);
+  font-weight: 600;
+  min-width: 60px;
+}
+.ms-event { flex: 1; font-size: 12px; line-height: 1.4; }
+.ms-impact { font-size: 12px; font-weight: 700; text-align: right; flex-shrink: 0; }
+.ms-impact.pos { color: var(--green); }
+.ms-impact.neg { color: var(--red); }
+.ms-impact.tbc { color: var(--muted); }
+
+/* ── Paydown ── */
+.paydown-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.pd-item {
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 12px;
+}
+.pd-label { font-size: 10px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+.pd-value { font-size: 20px; font-weight: 700; color: var(--accent4); letter-spacing: -0.5px; }
+.pd-value.highlight { color: var(--accent); }
+
+.progress-wrap { margin-top: 4px; }
+.progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.progress-bar {
+  height: 8px;
+  background: var(--surface2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent4), var(--accent));
+  border-radius: 4px;
+  transition: width 0.8s ease;
+}
+
+/* ── Section header in lists ── */
+.list-header {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--muted);
+  padding: 6px 0 8px;
+  font-weight: 600;
+}
+
+/* ── Total row ── */
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 14px;
+  margin-top: 2px;
+  border-top: 1px solid var(--border);
+}
+.total-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.total-value { font-size: 18px; font-weight: 700; color: var(--accent2); }
+
+footer {
+  text-align: center;
+  font-size: 10px;
+  color: var(--muted);
+  padding: 8px 0 4px;
+  letter-spacing: 1px;
+}
+</style>
+
+</head>
+
+<body>
+<div id="app">
+
+  <!-- Top bar -->
+
+  <div class="topbar">
+    <div class="topbar-title">Budget <span>·</span> Rowel</div>
+    <div class="surplus-badge nil" id="surplusBadge">Enter income</div>
+  </div>
+
+  <!-- Scroll area -->
+
+  <div class="scroll" id="scrollArea">
+
+```
+<!-- PAGE: OVERVIEW -->
+<div class="page active" id="page-overview">
+
+  <div class="hero">
+    <div class="hero-item">
+      <div class="hero-label">Salary / mo</div>
+      <div class="hero-value income" id="h-income">$0</div>
+    </div>
+    <div class="hero-item">
+      <div class="hero-label">Rental Income</div>
+      <div class="hero-value rental" id="h-rental">$0</div>
+    </div>
+    <div class="hero-item">
+      <div class="hero-label">Total Outgoings</div>
+      <div class="hero-value expense" id="h-outgoings">$1,906</div>
+    </div>
+    <div class="hero-item">
+      <div class="hero-label">Monthly Surplus</div>
+      <div class="hero-value surplus" id="h-surplus">—</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Spending breakdown</div>
+    <div class="stackbar">
+      <div class="seg" id="seg-childcare" style="background:#6baaff;width:45%"></div>
+      <div class="seg" id="seg-dental"    style="background:#f5a623;width:21%"></div>
+      <div class="seg" id="seg-insurance" style="background:#ff6b6b;width:16%"></div>
+      <div class="seg" id="seg-utilities" style="background:#a78bfa;width:5%"></div>
+      <div class="seg" id="seg-comms"     style="background:#4caf82;width:8%"></div>
+      <div class="seg" id="seg-streaming" style="background:#f472b6;width:5%"></div>
+      <div class="seg" id="seg-surplus"   style="background:#c8f56a;width:0%"></div>
+    </div>
+    <div class="legend">
+      <div class="leg"><div class="leg-dot" style="background:#6baaff"></div>Childcare</div>
+      <div class="leg"><div class="leg-dot" style="background:#f5a623"></div>Denticare</div>
+      <div class="leg"><div class="leg-dot" style="background:#ff6b6b"></div>Insurance</div>
+      <div class="leg"><div class="leg-dot" style="background:#a78bfa"></div>Utilities</div>
+      <div class="leg"><div class="leg-dot" style="background:#4caf82"></div>Comms</div>
+      <div class="leg"><div class="leg-dot" style="background:#f472b6"></div>Streaming</div>
+      <div class="leg"><div class="leg-dot" style="background:#c8f56a"></div>Surplus</div>
+    </div>
+  </div>
+
+  <!-- Paydown -->
+  <div class="card">
+    <div class="card-title">Credit card paydown — Target July 2026</div>
+    <div class="paydown-grid">
+      <div class="pd-item">
+        <div class="pd-label">Balance</div>
+        <div class="pd-value">$13,658</div>
+      </div>
+      <div class="pd-item">
+        <div class="pd-label">Interest p.a.</div>
+        <div class="pd-value">20.99%</div>
+      </div>
+      <div class="pd-item">
+        <div class="pd-label">Monthly interest</div>
+        <div class="pd-value">~$239</div>
+      </div>
+      <div class="pd-item">
+        <div class="pd-label">Clears in</div>
+        <div class="pd-value highlight" id="pd-months">—</div>
+      </div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-labels"><span>$0</span><span>$14,136 target</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- Milestones -->
+  <div class="card">
+    <div class="card-title">Upcoming milestones</div>
+    <div class="milestone">
+      <div class="ms-date">Apr 2026</div>
+      <div class="ms-event">Denticare increases to $405/mo</div>
+      <div class="ms-impact neg">-$202</div>
+    </div>
+    <div class="milestone">
+      <div class="ms-date">Jul 2026</div>
+      <div class="ms-event">Bupa ends · card cleared · Optus SIM-only</div>
+      <div class="ms-impact pos">+$558</div>
+    </div>
+    <div class="milestone">
+      <div class="ms-date">Sep 2026</div>
+      <div class="ms-event">Daughter turns 4 · kinder funding begins</div>
+      <div class="ms-impact tbc">TBC</div>
+    </div>
+    <div class="milestone">
+      <div class="ms-date">Jan 2028</div>
+      <div class="ms-event">Daughter starts Prep · childcare ends</div>
+      <div class="ms-impact pos">+$861</div>
+    </div>
+    <footer style="margin-top:12px">AMPLIFY SIGNATURE · BANK OF MELBOURNE · MAY 2026</footer>
+  </div>
+
+</div><!-- /page-overview -->
+
+<!-- PAGE: INCOME -->
+<div class="page" id="page-income">
+
+  <div class="card">
+    <div class="card-title">Your salary</div>
+    <div class="input-group">
+      <div class="input-label inc">Monthly take-home pay</div>
+      <div class="input-wrap inc">
+        <div class="input-prefix inc">$</div>
+        <input type="number" id="incomeInput" placeholder="0" inputmode="decimal">
+      </div>
+      <div class="input-sub">After tax, in hand each month</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Property — scenario: rent out both, rent in east</div>
+
+    <div class="list-header" style="color:rgba(255,107,107,0.7)">Outgoings</div>
+
+    <div class="input-group">
+      <div class="input-label exp">Mambourin mortgage / mo</div>
+      <div class="input-wrap exp">
+        <div class="input-prefix exp">$</div>
+        <input type="number" id="homeLoan" placeholder="0" inputmode="decimal">
+      </div>
+      <div class="input-sub">Home loan repayment</div>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label exp">Investment property loan / mo</div>
+      <div class="input-wrap exp">
+        <div class="input-prefix exp">$</div>
+        <input type="number" id="investLoan" placeholder="0" inputmode="decimal">
+      </div>
+      <div class="input-sub">Mortgage repayment</div>
+    </div>
+
+    <div class="input-group">
+      <div class="input-label exp">Your rent — eastern suburbs / mo</div>
+      <div class="input-wrap exp">
+        <div class="input-prefix exp">$</div>
+        <input type="number" id="yourRent" placeholder="0" inputmode="decimal">
+      </div>
+      <div class="input-sub">Where you'll be living</div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="list-header" style="color:rgba(76,175,130,0.8)">Rental Income</div>
+
+    <div class="input-group">
+      <div class="input-label inc">Mambourin rental income / mo</div>
+      <div class="input-wrap inc">
+        <div class="input-prefix inc">$</div>
+        <input type="number" id="mamRental" placeholder="0" inputmode="decimal">
+      </div>
+      <div class="input-sub">Current house rented out</div>
+    </div>
+
+    <div class="input-group" style="margin-bottom:0">
+      <div class="input-label inc">Investment property rental / mo</div>
+      <div class="input-wrap inc">
+        <div class="input-prefix inc">$</div>
+        <input type="number" id="investRental" placeholder="0" inputmode="decimal">
+      </div>
+      <div class="input-sub">Victoria investment property</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Property net summary -->
+    <div class="prop-net-row">
+      <div class="prop-net-box">
+        <div class="prop-net-label">Mambourin Net</div>
+        <div class="prop-net-value" id="mamNet">—</div>
+        <div><span class="gear-tag" id="mamGearTag">enter values</span></div>
+      </div>
+      <div class="prop-net-box">
+        <div class="prop-net-label">Investment Net</div>
+        <div class="prop-net-value" id="investNet">—</div>
+        <div><span class="gear-tag" id="investGearTag">enter values</span></div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+      <div class="prop-net-box">
+        <div class="prop-net-label">Total Rental / mo</div>
+        <div class="prop-net-value pos" id="totalRentalIncome">—</div>
+      </div>
+      <div class="prop-net-box">
+        <div class="prop-net-label">Net Prop. Cashflow</div>
+        <div class="prop-net-value" id="propNetCashflow">—</div>
+      </div>
+    </div>
+
+    <div style="margin-top:10px;padding:12px;background:var(--surface2);border-radius:10px;">
+      <div class="prop-net-label">All-in outgoings (recurring + loans + your rent)</div>
+      <div class="prop-net-value" id="allInOutgoings" style="color:var(--accent2)">—</div>
+    </div>
+
+  </div>
+
+</div><!-- /page-income -->
+
+<!-- PAGE: BILLS -->
+<div class="page" id="page-bills">
+
+  <div class="card">
+    <div class="card-title">Recurring fixed costs · $1,906 / month</div>
+
+    <div class="list-header">Family</div>
+    <div class="rec-row">
+      <div class="rec-dot" style="background:#6baaff"></div>
+      <div class="rec-info">
+        <div class="rec-name">Childcare — DBS Inspire</div>
+        <div class="rec-note">3x per week · 1 child · $198.89/wk</div>
+      </div>
+      <div class="rec-amount" style="color:#6baaff">$861</div>
+    </div>
+    <div class="rec-row">
+      <div class="rec-dot" style="background:#f5a623"></div>
+      <div class="rec-info">
+        <div class="rec-name">Denticare</div>
+        <div class="rec-note">x2 kids · from Apr 2026</div>
+      </div>
+      <div class="rec-amount" style="color:#f5a623">$405</div>
+    </div>
+
+    <div class="list-header" style="padding-top:12px">Insurance</div>
+    <div class="rec-row">
+      <div class="rec-dot" style="background:#ff6b6b"></div>
+      <div class="rec-info">
+        <div class="rec-name">Youi Insurance</div>
+        <div class="rec-note">Vehicle / home</div>
+      </div>
+      <div class="rec-amount" style="color:#ff6b6b">~$145</div>
+    </div>
+    <div class="rec-row">
+      <div class="rec-dot" style="background:#ff6b6b"></div>
+      <div class="rec-info">
+        <div class="rec-name">Honey Insurance</div>
+        <div class="rec-note">Ends July 2026 🎉</div>
+      </div>
+      <div class="rec-amount" style="color:#ff6b6b">~$161</div>
+    </div>
+    <div class="rec-row">
+      <div class="rec-dot" style="background:#ff6b6b"></div>
+      <div class="rec-info">
+        <div class="rec-name">Hannover Life</div>
+      </div>
+      <div class="rec-amount" style="color:#ff6b6b">$7.72</div>
+    </div>
+
+    <div class="list-header" style="padding-top:12px">Communications</div>
+    <div class="rec-row">
+      <div class="rec-dot" style="background:#4caf82"></div>
+      <div class="rec-info">
+        <div class="rec-name">Optus Mobile</div>
+        <div class="rec-note">Your plan · switching to SIM-only</div>
+      </div>
+      <div class="rec-amount" style="color:#4caf82">$30</div>
+    </div>
+    <div class="rec-row">
+      <div class="rec-dot" style="background:#4caf82"></div>
+      <div class="rec-info">
+        <div class="rec-name">Belong Mobile</div>
+        <div class="rec-note">Wife's plan</div>
+      </div>
+      <div class="rec-amount" style="color:#4caf82">$30</div>
+    </div>
+    <div class="rec-row">
+      <div class="rec-dot" style="background:#4caf82"></div>
+      <div class="rec-info">
+        <div class="rec-name">Launtel Internet</div>
+        <div class="rec-note">Home broadband</div>
+      </div>
+      <div class="rec-amount" style="color:#4caf82">$90.52</div>
+    </div>
+
+    <div class="list-header" style="padding-top:12px">Utilities</div>
+    <div class="rec-row">
+      <div class="rec-dot" style="background:#a78bfa"></div>
+      <div class="rec-info">
+        <div class="rec-name">Lumo Energy</div>
+        <div class="rec-note">Electricity · offset by solar ☀️</div>
+      </div>
+      <div class="rec-amount" style="color:#a78bfa">~$34</div>
+    </div>
+    <div class="rec-row">
+      <div class="rec-dot" style="background:#a78bfa"></div>
+      <div class="rec-info">
+        <div class="rec-name">Sumo Gas</div>
+        <div class="rec-note">Quarterly ~$213 · avg monthly</div>
+      </div>
+      <div class="rec-amount" style="color:#a78bfa">~$71</div>
+    </div>
+
+    <div class="list-header" style="padding-top:12px">Subscriptions</div>
+    <div class="rec-row">
+      <div class="rec-dot" style="background:#f472b6"></div>
+      <div class="rec-info"><div class="rec-name">Netflix</div></div>
+      <div class="rec-amount" style="color:#f472b6">$28.99</div>
+    </div>
+    <div class="rec-row">
+      <div class="rec-dot" style="background:#f472b6"></div>
+      <div class="rec-info"><div class="rec-name">Disney+</div></div>
+      <div class="rec-amount" style="color:#f472b6">$20.99</div>
+    </div>
+    <div class="rec-row">
+      <div class="rec-dot" style="background:#f472b6"></div>
+      <div class="rec-info"><div class="rec-name">Prime Video</div></div>
+      <div class="rec-amount" style="color:#f472b6">$2.99</div>
+    </div>
+    <div class="rec-row">
+      <div class="rec-dot" style="background:#f472b6"></div>
+      <div class="rec-info">
+        <div class="rec-name">Google One</div>
+        <div class="rec-note">Review storage tier</div>
+      </div>
+      <div class="rec-amount" style="color:#f472b6">$14.99</div>
+    </div>
+
+    <div class="total-row">
+      <div class="total-label">Monthly total</div>
+      <div class="total-value">$1,906</div>
+    </div>
+  </div>
+
+</div><!-- /page-bills -->
+
+<!-- PAGE: RULES -->
+<div class="page" id="page-rules">
+
+  <div class="card">
+    <div class="card-title">5 rules — keeping the card at zero</div>
+    <div class="rule-item">
+      <div class="rule-num">1</div>
+      <div class="rule-body">
+        <div class="rule-title">Set up full balance direct debit</div>
+        <div class="rule-desc">Call 13 22 66 · auto-pays closing balance every month · eliminates 20.99% interest permanently</div>
+      </div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-num">2</div>
+      <div class="rule-body">
+        <div class="rule-title">Keep $2,000 buffer in your account</div>
+        <div class="rule-desc">Covers one full month of recurring costs · ensures direct debit never bounces</div>
+      </div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-num">3</div>
+      <div class="rule-body">
+        <div class="rule-title">Treat the card like a debit card</div>
+        <div class="rule-desc">Only charge what you already have in the bank · earn Qantas points at zero interest cost</div>
+      </div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-num">4</div>
+      <div class="rule-body">
+        <div class="rule-title">Ring-fence irregular costs monthly</div>
+        <div class="rule-desc">Gas ~$71 · Medical specialists ~$200 · Set aside each month so quarterly bills don't spike the card</div>
+      </div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-num">5</div>
+      <div class="rule-body">
+        <div class="rule-title">No large travel charges without a payoff plan</div>
+        <div class="rule-desc">The $12,385 Turkish Airlines purchase is what caused this debt · save separately before booking flights</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Savings achieved so far</div>
+    <div class="rec-row">
+      <div class="rec-info"><div class="rec-name">Optus → $30 SIM-only</div></div>
+      <div class="rec-amount" style="color:var(--green)">+$153/mo</div>
+    </div>
+    <div class="rec-row">
+      <div class="rec-info">
+        <div class="rec-name">Bupa ending July 2026</div>
+      </div>
+      <div class="rec-amount" style="color:var(--green)">+$207/mo</div>
+    </div>
+    <div class="rec-row">
+      <div class="rec-info"><div class="rec-name">Afterpay removed</div></div>
+      <div class="rec-amount" style="color:var(--green)">+$450/mo</div>
+    </div>
+    <div class="rec-row">
+      <div class="rec-info"><div class="rec-name">Mackillop College removed</div></div>
+      <div class="rec-amount" style="color:var(--green)">+$850/mo</div>
+    </div>
+    <div class="total-row">
+      <div class="total-label">Total monthly saving</div>
+      <div class="total-value" style="color:var(--green)">~$1,660</div>
+    </div>
+  </div>
+
+</div><!-- /page-rules -->
+```
+
+  </div><!-- /scroll -->
+
+  <!-- Tab bar -->
+
+  <div class="tabbar">
+    <div class="tab active" data-page="overview" onclick="switchTab(this)">
+      <div class="tab-icon">📊</div>
+      <div class="tab-label">Overview</div>
+    </div>
+    <div class="tab" data-page="income" onclick="switchTab(this)">
+      <div class="tab-icon">💰</div>
+      <div class="tab-label">Income</div>
+    </div>
+    <div class="tab" data-page="bills" onclick="switchTab(this)">
+      <div class="tab-icon">📋</div>
+      <div class="tab-label">Bills</div>
+    </div>
+    <div class="tab" data-page="rules" onclick="switchTab(this)">
+      <div class="tab-icon">✅</div>
+      <div class="tab-label">Rules</div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ── Tab switching ──
+function switchTab(el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('page-' + el.dataset.page).classList.add('active');
+  document.getElementById('scrollArea').scrollTop = 0;
+}
+
+// ── Constants ──
+const RECURRING = 1906;
+const BALANCE   = 13658;
+
+// ── Helpers ──
+const fmt = n => '$' + Math.abs(n).toLocaleString('en-AU', { maximumFractionDigits: 0 });
+const val = id => parseFloat(document.getElementById(id).value) || 0;
+
+function gearTag(net, elId, tagId) {
+  const el  = document.getElementById(elId);
+  const tag = document.getElementById(tagId);
+  if (net < 0) {
+    el.className  = 'prop-net-value neg';
+    tag.className = 'gear-tag neg-g';
+    tag.textContent = 'Negatively geared';
+  } else if (net === 0) {
+    el.className  = 'prop-net-value';
+    tag.className = 'gear-tag neu-g';
+    tag.textContent = 'Neutrally geared';
+  } else {
+    el.className  = 'prop-net-value pos';
+    tag.className = 'gear-tag pos-g';
+    tag.textContent = 'Positively geared';
+  }
+  el.textContent = (net >= 0 ? '+' : '-') + fmt(net) + '/mo';
+}
+
+// ── Main update ──
+function update() {
+  const income      = val('incomeInput');
+  const homeLoan    = val('homeLoan');
+  const investLoan  = val('investLoan');
+  const yourRent    = val('yourRent');
+  const mamRental   = val('mamRental');
+  const investRental= val('investRental');
+
+  const mamNet      = mamRental - homeLoan;
+  const investNet   = investRental - investLoan;
+  const totalRental = mamRental + investRental;
+  const propCashflow= totalRental - homeLoan - investLoan - yourRent;
+  const totalOut    = RECURRING + homeLoan + investLoan + yourRent;
+  const totalIn     = income + totalRental;
+  const surplus     = totalIn - totalOut;
+
+  // Property nets
+  if (homeLoan > 0 || mamRental > 0) gearTag(mamNet, 'mamNet', 'mamGearTag');
+  else { document.getElementById('mamNet').textContent = '—'; document.getElementById('mamGearTag').textContent = 'enter values'; document.getElementById('mamGearTag').className = 'gear-tag'; }
+
+  if (investLoan > 0 || investRental > 0) gearTag(investNet, 'investNet', 'investGearTag');
+  else { document.getElementById('investNet').textContent = '—'; document.getElementById('investGearTag').textContent = 'enter values'; document.getElementById('investGearTag').className = 'gear-tag'; }
+
+  const tri = document.getElementById('totalRentalIncome');
+  tri.textContent = totalRental > 0 ? fmt(totalRental) + '/mo' : '—';
+
+  const pcf = document.getElementById('propNetCashflow');
+  if (homeLoan > 0 || investLoan > 0 || yourRent > 0 || totalRental > 0) {
+    pcf.textContent  = (propCashflow >= 0 ? '+' : '-') + fmt(propCashflow) + '/mo';
+    pcf.className    = 'prop-net-value ' + (propCashflow >= 0 ? 'pos' : 'neg');
+  } else { pcf.textContent = '—'; }
+
+  document.getElementById('allInOutgoings').textContent = fmt(totalOut) + '/mo';
+
+  // Hero
+  document.getElementById('h-income').textContent   = fmt(income);
+  document.getElementById('h-rental').textContent   = fmt(totalRental);
+  document.getElementById('h-outgoings').textContent = fmt(totalOut);
+
+  // Surplus
+  const badge = document.getElementById('surplusBadge');
+  const hSur  = document.getElementById('h-surplus');
+  const pdMo  = document.getElementById('pd-months');
+  const pFill = document.getElementById('progressFill');
+
+  if (totalIn === 0) {
+    hSur.textContent  = '—';
+    hSur.className    = 'hero-value surplus';
+    badge.textContent = 'Enter income';
+    badge.className   = 'surplus-badge nil';
+    pdMo.textContent  = '—';
+    pFill.style.width = '0%';
+  } else if (surplus >= 0) {
+    hSur.textContent  = fmt(surplus);
+    hSur.className    = 'hero-value surplus';
+    const months = surplus > 0 ? Math.ceil(BALANCE / surplus) : '∞';
+    badge.textContent = '↑ ' + fmt(surplus) + ' surplus';
+    badge.className   = 'surplus-badge pos';
+    pdMo.textContent  = surplus > 0 ? months + ' mo' : '∞';
+    pFill.style.width = Math.min((surplus * 2 / BALANCE) * 100, 100) + '%';
+  } else {
+    hSur.textContent  = fmt(surplus);
+    hSur.className    = 'hero-value deficit';
+    badge.textContent = '↓ ' + fmt(surplus) + ' deficit';
+    badge.className   = 'surplus-badge neg';
+    pdMo.textContent  = '—';
+    pFill.style.width = '0%';
+  }
+
+  // Stack bar
+  const total = Math.max(totalIn, totalOut, 1);
+  const pct = v => (Math.max(v, 0) / total * 100).toFixed(1) + '%';
+  document.getElementById('seg-childcare').style.width = pct(861);
+  document.getElementById('seg-dental').style.width    = pct(405);
+  document.getElementById('seg-insurance').style.width = pct(314);
+  document.getElementById('seg-utilities').style.width = pct(105);
+  document.getElementById('seg-comms').style.width     = pct(150);
+  document.getElementById('seg-streaming').style.width = pct(71);
+  document.getElementById('seg-surplus').style.width   = surplus > 0 ? pct(surplus) : '0%';
+
+  // Persist inputs
+  const data = { income, homeLoan, investLoan, yourRent, mamRental, investRental };
+  try { localStorage.setItem('budget_v1', JSON.stringify(data)); } catch(e){}
+}
+
+// ── Restore saved values ──
+try {
+  const saved = JSON.parse(localStorage.getItem('budget_v1') || '{}');
+  if (saved.income)       document.getElementById('incomeInput').value  = saved.income;
+  if (saved.homeLoan)     document.getElementById('homeLoan').value      = saved.homeLoan;
+  if (saved.investLoan)   document.getElementById('investLoan').value    = saved.investLoan;
+  if (saved.yourRent)     document.getElementById('yourRent').value      = saved.yourRent;
+  if (saved.mamRental)    document.getElementById('mamRental').value     = saved.mamRental;
+  if (saved.investRental) document.getElementById('investRental').value  = saved.investRental;
+} catch(e){}
+
+// ── Bind all inputs ──
+['incomeInput','homeLoan','investLoan','yourRent','mamRental','investRental']
+  .forEach(id => document.getElementById(id).addEventListener('input', update));
+
+update();
+</script>
+
+</body>
+</html>
