@@ -470,6 +470,73 @@ footer {
   padding: 8px 0 4px;
   letter-spacing: 1px;
 }
+
+/* ── Scenario toggle ── */
+.scenario-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.scenario-option {
+  position: relative;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 12px 12px 36px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  user-select: none;
+}
+
+.scenario-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0; height: 0;
+}
+
+.scenario-option::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  transition: border-color 0.2s, background 0.2s;
+  flex-shrink: 0;
+}
+
+.scenario-option.active {
+  border-color: var(--accent);
+  background: rgba(200,245,106,0.05);
+}
+
+.scenario-option.active::before {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(200,245,106,0.15);
+}
+
+.scenario-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+
+.scenario-option.active .scenario-label {
+  color: var(--accent);
+}
+
+.scenario-sub {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.4;
+}
 </style>
 
 </head>
@@ -488,7 +555,6 @@ footer {
 
   <div class="scroll" id="scrollArea">
 
-```
 <!-- PAGE: OVERVIEW -->
 <div class="page active" id="page-overview">
 
@@ -604,7 +670,21 @@ footer {
   </div>
 
   <div class="card">
-    <div class="card-title">Property — scenario: rent out both, rent in east</div>
+    <div class="card-title" id="scenarioCardTitle">Property — scenario: stay in mambourin</div>
+
+    <!-- Scenario switcher -->
+    <div class="scenario-toggle">
+      <label class="scenario-option active" id="scenarioOptA">
+        <input type="radio" name="scenario" value="A" checked onchange="switchScenario('A')">
+        <div class="scenario-label">A · Stay in Mambourin</div>
+        <div class="scenario-sub">Live in your home · investment property only</div>
+      </label>
+      <label class="scenario-option" id="scenarioOptB">
+        <input type="radio" name="scenario" value="B" onchange="switchScenario('B')">
+        <div class="scenario-label">B · Rent out both</div>
+        <div class="scenario-sub">Rent out Mambourin + invest · rent in east</div>
+      </label>
+    </div>
 
     <div class="list-header" style="color:rgba(255,107,107,0.7)">Outgoings</div>
 
@@ -626,25 +706,31 @@ footer {
       <div class="input-sub">Mortgage repayment</div>
     </div>
 
-    <div class="input-group">
-      <div class="input-label exp">Your rent — eastern suburbs / mo</div>
-      <div class="input-wrap exp">
-        <div class="input-prefix exp">$</div>
-        <input type="number" id="yourRent" placeholder="0" inputmode="decimal">
+    <!-- Scenario B only fields -->
+    <div id="scenario-b-fields" style="display:none">
+      <div class="input-group">
+        <div class="input-label exp">Your rent — eastern suburbs / mo</div>
+        <div class="input-wrap exp">
+          <div class="input-prefix exp">$</div>
+          <input type="number" id="yourRent" placeholder="0" inputmode="decimal">
+        </div>
+        <div class="input-sub">Where you'll be living</div>
       </div>
-      <div class="input-sub">Where you'll be living</div>
     </div>
 
     <div class="divider"></div>
     <div class="list-header" style="color:rgba(76,175,130,0.8)">Rental Income</div>
 
-    <div class="input-group">
-      <div class="input-label inc">Mambourin rental income / mo</div>
-      <div class="input-wrap inc">
-        <div class="input-prefix inc">$</div>
-        <input type="number" id="mamRental" placeholder="0" inputmode="decimal">
+    <!-- Scenario B only fields (rental income) -->
+    <div id="scenario-b-rental" style="display:none">
+      <div class="input-group">
+        <div class="input-label inc">Mambourin rental income / mo</div>
+        <div class="input-wrap inc">
+          <div class="input-prefix inc">$</div>
+          <input type="number" id="mamRental" placeholder="0" inputmode="decimal">
+        </div>
+        <div class="input-sub">Current house rented out</div>
       </div>
-      <div class="input-sub">Current house rented out</div>
     </div>
 
     <div class="input-group" style="margin-bottom:0">
@@ -887,7 +973,6 @@ footer {
   </div>
 
 </div><!-- /page-rules -->
-```
 
   </div><!-- /scroll -->
 
@@ -922,6 +1007,23 @@ function switchTab(el) {
   el.classList.add('active');
   document.getElementById('page-' + el.dataset.page).classList.add('active');
   document.getElementById('scrollArea').scrollTop = 0;
+}
+
+// ── Scenario switching ──
+function switchScenario(val) {
+  const isB = val === 'B';
+  document.getElementById('scenario-b-fields').style.display  = isB ? '' : 'none';
+  document.getElementById('scenario-b-rental').style.display  = isB ? '' : 'none';
+  document.getElementById('scenarioOptA').classList.toggle('active', !isB);
+  document.getElementById('scenarioOptB').classList.toggle('active',  isB);
+  document.getElementById('scenarioCardTitle').textContent = isB
+    ? 'Property — scenario: rent out both, rent in east'
+    : 'Property — scenario: stay in mambourin';
+  if (!isB) {
+    document.getElementById('yourRent').value  = '';
+    document.getElementById('mamRental').value = '';
+  }
+  update();
 }
 
 // ── Constants ──
@@ -1033,7 +1135,8 @@ function update() {
   document.getElementById('seg-surplus').style.width   = surplus > 0 ? pct(surplus) : '0%';
 
   // Persist inputs
-  const data = { income, homeLoan, investLoan, yourRent, mamRental, investRental };
+  const scenario = document.querySelector('input[name="scenario"]:checked').value;
+  const data = { income, homeLoan, investLoan, yourRent, mamRental, investRental, scenario };
   try { localStorage.setItem('budget_v1', JSON.stringify(data)); } catch(e){}
 }
 
@@ -1046,7 +1149,12 @@ try {
   if (saved.yourRent)     document.getElementById('yourRent').value      = saved.yourRent;
   if (saved.mamRental)    document.getElementById('mamRental').value     = saved.mamRental;
   if (saved.investRental) document.getElementById('investRental').value  = saved.investRental;
-} catch(e){}
+  // Restore scenario (default A)
+  const sc = saved.scenario || 'A';
+  const radioEl = document.querySelector(`input[name="scenario"][value="${sc}"]`);
+  if (radioEl) radioEl.checked = true;
+  switchScenario(sc);
+} catch(e){ switchScenario('A'); }
 
 // ── Bind all inputs ──
 ['incomeInput','homeLoan','investLoan','yourRent','mamRental','investRental']
