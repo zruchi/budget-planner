@@ -537,6 +537,91 @@ footer {
   color: var(--muted);
   line-height: 1.4;
 }
+
+/* ── Misc cost rows ── */
+.misc-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.misc-name {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+  min-width: 0;
+}
+.misc-name::placeholder { color: var(--border); }
+.misc-name:focus { border-color: var(--accent2); }
+
+.misc-amount-wrap {
+  display: flex;
+  align-items: center;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  gap: 4px;
+  width: 110px;
+  flex-shrink: 0;
+  transition: border-color 0.2s;
+}
+.misc-amount-wrap:focus-within { border-color: var(--accent2); }
+
+.misc-prefix { font-size: 14px; font-weight: 700; color: var(--accent2); }
+
+.misc-amount {
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  width: 100%;
+}
+.misc-amount::-webkit-inner-spin-button { -webkit-appearance: none; }
+.misc-amount::placeholder { color: var(--border); }
+
+.misc-remove {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.misc-remove:hover { background: rgba(255,107,107,0.15); color: var(--red); border-color: rgba(255,107,107,0.3); }
+
+.add-misc-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 9px 14px;
+  cursor: pointer;
+  width: 100%;
+  transition: border-color 0.2s, color 0.2s;
+  margin-bottom: 10px;
+}
+.add-misc-btn:hover { border-color: var(--accent); color: var(--accent); }
 </style>
 
 </head>
@@ -896,9 +981,13 @@ footer {
       <div class="rec-amount" style="color:#f472b6">$14.99</div>
     </div>
 
+    <div class="list-header" style="padding-top:12px">Miscellaneous</div>
+    <div id="misc-rows"></div>
+    <button class="add-misc-btn" onclick="addMiscRow()">＋ Add item</button>
+
     <div class="total-row">
       <div class="total-label">Monthly total</div>
-      <div class="total-value">$1,906</div>
+      <div class="total-value" id="billsTotal">$1,906</div>
     </div>
   </div>
 
@@ -1000,6 +1089,76 @@ footer {
 </div><!-- /app -->
 
 <script>
+// ── Misc costs ──
+let miscItems = { A: [], B: [] };
+
+function currentScenario() {
+  return document.querySelector('input[name="scenario"]:checked')?.value || 'A';
+}
+
+function renderMiscRows() {
+  const sc = currentScenario();
+  const container = document.getElementById('misc-rows');
+  container.innerHTML = '';
+  miscItems[sc].forEach((item, idx) => {
+    if (!item) return;
+    const row = document.createElement('div');
+    row.className = 'misc-row';
+    row.dataset.idx = idx;
+    row.innerHTML = `
+      <input class="misc-name" type="text" placeholder="Label (e.g. Groceries)" value="${item.name}" oninput="updateMiscItem(${idx},'name',this.value)">
+      <div class="misc-amount-wrap">
+        <span class="misc-prefix">$</span>
+        <input class="misc-amount" type="number" placeholder="0" inputmode="decimal" value="${item.amount}" oninput="updateMiscItem(${idx},'amount',this.value)">
+      </div>
+      <button class="misc-remove" onclick="removeMiscRow(${idx})">×</button>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function addMiscRow(name = '', amount = '') {
+  const sc = currentScenario();
+  const idx = miscItems[sc].length;
+  miscItems[sc].push({ name, amount });
+
+  const row = document.createElement('div');
+  row.className = 'misc-row';
+  row.dataset.idx = idx;
+  row.innerHTML = `
+    <input class="misc-name" type="text" placeholder="Label (e.g. Groceries)" value="${name}" oninput="updateMiscItem(${idx},'name',this.value)">
+    <div class="misc-amount-wrap">
+      <span class="misc-prefix">$</span>
+      <input class="misc-amount" type="number" placeholder="0" inputmode="decimal" value="${amount}" oninput="updateMiscItem(${idx},'amount',this.value)">
+    </div>
+    <button class="misc-remove" onclick="removeMiscRow(${idx})">×</button>
+  `;
+  document.getElementById('misc-rows').appendChild(row);
+  update();
+}
+
+function updateMiscItem(idx, key, value) {
+  const sc = currentScenario();
+  if (miscItems[sc][idx]) miscItems[sc][idx][key] = value;
+  update();
+}
+
+function removeMiscRow(idx) {
+  const sc = currentScenario();
+  miscItems[sc][idx] = null;
+  const rows = document.querySelectorAll('#misc-rows .misc-row');
+  rows.forEach(r => { if (parseInt(r.dataset.idx) === idx) r.remove(); });
+  update();
+}
+
+function miscTotal() {
+  const sc = currentScenario();
+  return miscItems[sc].reduce((sum, item) => {
+    if (!item) return sum;
+    return sum + (parseFloat(item.amount) || 0);
+  }, 0);
+}
+
 // ── Tab switching ──
 function switchTab(el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -1019,10 +1178,7 @@ function switchScenario(val) {
   document.getElementById('scenarioCardTitle').textContent = isB
     ? 'Property — scenario: rent out both, rent in east'
     : 'Property — scenario: stay in mambourin';
-  if (!isB) {
-    document.getElementById('yourRent').value  = '';
-    document.getElementById('mamRental').value = '';
-  }
+  renderMiscRows();
   update();
 }
 
@@ -1055,20 +1211,25 @@ function gearTag(net, elId, tagId) {
 
 // ── Main update ──
 function update() {
+  const isB         = document.querySelector('input[name="scenario"]:checked')?.value === 'B';
   const income      = val('incomeInput');
   const homeLoan    = val('homeLoan');
   const investLoan  = val('investLoan');
-  const yourRent    = val('yourRent');
-  const mamRental   = val('mamRental');
+  const yourRent    = isB ? val('yourRent')   : 0;
+  const mamRental   = isB ? val('mamRental')  : 0;
   const investRental= val('investRental');
 
   const mamNet      = mamRental - homeLoan;
   const investNet   = investRental - investLoan;
   const totalRental = mamRental + investRental;
   const propCashflow= totalRental - homeLoan - investLoan - yourRent;
-  const totalOut    = RECURRING + homeLoan + investLoan + yourRent;
+  const misc        = miscTotal();
+  const totalOut    = RECURRING + homeLoan + investLoan + yourRent + misc;
   const totalIn     = income + totalRental;
   const surplus     = totalIn - totalOut;
+
+  // Bills total
+  document.getElementById('billsTotal').textContent = fmt(RECURRING + misc) + (misc > 0 ? '' : '');
 
   // Property nets
   if (homeLoan > 0 || mamRental > 0) gearTag(mamNet, 'mamNet', 'mamGearTag');
@@ -1136,7 +1297,10 @@ function update() {
 
   // Persist inputs
   const scenario = document.querySelector('input[name="scenario"]:checked').value;
-  const data = { income, homeLoan, investLoan, yourRent, mamRental, investRental, scenario };
+  const data = {
+    income, homeLoan, investLoan, yourRent, mamRental, investRental, scenario,
+    misc: { A: miscItems.A.filter(Boolean), B: miscItems.B.filter(Boolean) }
+  };
   try { localStorage.setItem('budget_v1', JSON.stringify(data)); } catch(e){}
 }
 
@@ -1149,7 +1313,10 @@ try {
   if (saved.yourRent)     document.getElementById('yourRent').value      = saved.yourRent;
   if (saved.mamRental)    document.getElementById('mamRental').value     = saved.mamRental;
   if (saved.investRental) document.getElementById('investRental').value  = saved.investRental;
-  // Restore scenario (default A)
+  // Restore misc rows (per-scenario)
+  if (saved.misc?.A) saved.misc.A.forEach(m => { miscItems.A.push(m); });
+  if (saved.misc?.B) saved.misc.B.forEach(m => { miscItems.B.push(m); });
+  // Restore scenario (default A) — renders misc rows for the active scenario
   const sc = saved.scenario || 'A';
   const radioEl = document.querySelector(`input[name="scenario"][value="${sc}"]`);
   if (radioEl) radioEl.checked = true;
